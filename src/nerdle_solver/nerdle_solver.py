@@ -55,17 +55,17 @@ class NerdleSolver:
         # parse.  This lets us cache failed parses as well.
         self._expr_by_str: dict[str, Optional[int]] = dict()
         self._expr_by_val: dict[int, List[str]] = dict()
+        # We only actually use them, though, if we have to build our own
+        # list of valid equations
         self._valid_equations: dict[str, int] = dict()
         expr_loaded = False
         if not expr_file:
             datadir = realpath(join(dirname(__file__), "static"))
-            expr_file = f"{datadir}/expressions-{self.expression_length}.json"
+            expr_file = f"{datadir}/equations-{self.expression_length}.json"
         try:
             with open(expr_file, "r") as f:
                 _exprs = json.load(f)
-                self._expr_by_str = _exprs["by_str"]
-                self._expr_by_val = _exprs["by_val"]
-                self._valid_equations = _exprs["valid"]
+                self._valid_equations = _exprs
             expr_loaded = True
         except Exception as exc:
             self.log.debug(f"Failed to read expr file {expr_file}: {exc}")
@@ -78,13 +78,8 @@ class NerdleSolver:
                     mkdir(datadir)
                 except FileExistsError:
                     pass
-                d = {
-                    "by_str": self._expr_by_str,
-                    "by_val": self._expr_by_val,
-                    "valid": self._valid_equations,
-                }
                 with open(expr_file, "w") as f:
-                    json.dump(d, f)
+                    json.dump(self._valid_equations, f)
             except Exception as exc:
                 self.log.debug(f"Failed to write expr file {expr_file}: {exc}")
         self.remaining_possibilities: list[str] = list(
@@ -397,12 +392,10 @@ class NerdleSolver:
                     self.store_expr(q, None)
                     continue
                 # Mark the equation as true
-                self.log.debug(f"Storing '{eqn}'")
                 self.store_expr(eqn, lhs)
                 # Well, it's true, buuuuut...not valid by our rules.
                 # So we don't store it as a valid equation.
                 if len(eqn) == self.expression_length:
-                    self.log.debug(f"Storing '{eqn}' as valid")
                     self._valid_equations[eqn] = lhs
                 # I thought about storing all the equations that evaluated
                 # to invalid answers, but it takes a lot of memory for

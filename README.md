@@ -46,16 +46,17 @@ files in the `static` directory below wherever the `nerdle_solver.py`
 file exists.
 
 If you don't do that, or if that isn't writeable, the solver will take a
-very long time to start up, because it is generating the list of all
+long time to start up, because it is generating the list of all
 valid-by-Nerdle-rules eight- (resp. six-) letter equations.
 
-The eight-letter file is large:
+These files are actually fairly small: there just aren't that many
+equations that satisfy all the Nerdle rules.
 
 ```
-adam@m1-wired:~/git/nerdle_solver$ ls -l src/nerdle_solver/static
-total 230352
--rw-r--r--  1 adam  staff     316304 Feb  7 22:12 expressions-6.json
--rw-r--r--  1 adam  staff  102437077 Feb  7 22:14 expressions-8.json
+adam@m1-wired:~/git/nerdle-solver$ ls -l src/nerdle_solver/static
+total 2000
+-rw-r--r--  1 adam  staff     6291 Feb  7 22:48 equations-6.json
+-rw-r--r--  1 adam  staff  1014184 Feb  7 22:48 equations-8.json
 ```
 
 ## Developing
