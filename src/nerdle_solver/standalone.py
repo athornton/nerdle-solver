@@ -9,6 +9,9 @@ from .nerdle_solver import NerdleSolver
 
 
 def parse_args() -> argparse.Namespace:
+    """
+    Build and populate a CLI argument parser
+    """
     parser = argparse.ArgumentParser(description="Solve a Nerdle puzzle")
     parser.add_argument(
         "-a", "--answer", help="the correct equation", default=""
@@ -37,8 +40,11 @@ def parse_args() -> argparse.Namespace:
 
 
 def generate_data() -> None:
+    """
+    Generate the equation caches
+    """
     args = parse_args()
-    for n in [6, 8]:
+    for n in [6, 8]:  # pylint: disable="invalid-name"
         _ = NerdleSolver(expression_length=n, debug=args.debug)
         # That's it!  If the files aren't there, that will generate them.
 

@@ -17,6 +17,15 @@ class NerdleSolver:
     Encapsulates the logic of Nerdle (https://nerdlegame.com)
     """
 
+    # I like using short variable names in my methods.  And I really
+    # don't care if I burn a few hundred microseconds interpolating a
+    # string I'm not going to emit.
+
+    # pylint: disable="invalid-name"
+    # pylint: disable="logging-not-lazy"
+    # pylint: disable="logging-fstring-interpolation"
+    # pylint: disable="too-many-instance-attributes"
+
     def __init__(
         self,
         answer: str = "",
@@ -26,7 +35,8 @@ class NerdleSolver:
         initial_guess: str = "",
         top: int = 5,
         expr_file: str = "",
-    ):
+    ):  # pylint: disable = "too-many-arguments"
+        # pylint: disable = "too-many-statements"
         self.debug = debug
         self.log = logging.getLogger(__name__)
         level = logging.INFO
@@ -46,28 +56,30 @@ class NerdleSolver:
         self.known_character_positions: str = "X" * self.expression_length
         self.position_could_be: List(set[str]) = []
         self.legal_chars: str = "0123456789+-*/="
-        for n in range(self.expression_length):
+        # pylint: disable="consider-using-set-comprehension"
+        # pylint: disable="unnecessary-comprehension"
+        for _ in range(self.expression_length):
             self.position_could_be.append(set([c for c in self.legal_chars]))
         self.not_in_expr: set[str] = set()
         self.in_expr: set[str] = set()
         self.guesses_tried: list[str] = []
         # in self._expr_by_str, a value of None means the expression does not
         # parse.  This lets us cache failed parses as well.
-        self._expr_by_str: dict[str, Optional[int]] = dict()
-        self._expr_by_val: dict[int, List[str]] = dict()
+        self._expr_by_str: dict[str, Optional[int]] = {}
+        self._expr_by_val: dict[int, List[str]] = {}
         # We only actually use them, though, if we have to build our own
         # list of valid equations
-        self._valid_equations: dict[str, int] = dict()
+        self._valid_equations: dict[str, int] = {}
         expr_loaded = False
         if not expr_file:
             datadir = realpath(join(dirname(__file__), "static"))
             expr_file = f"{datadir}/equations-{self.expression_length}.json"
         try:
-            with open(expr_file, "r") as f:
+            with open(expr_file, "r", encoding="utf-8") as f:
                 _exprs = json.load(f)
                 self._valid_equations = _exprs
             expr_loaded = True
-        except Exception as exc:
+        except Exception as exc:  # pylint: disable="broad-except"
             self.log.debug(f"Failed to read expr file {expr_file}: {exc}")
             self.log.debug("Calculating legal expressions")
             self.generate_legal_expressions()
@@ -78,9 +90,9 @@ class NerdleSolver:
                     mkdir(datadir)
                 except FileExistsError:
                     pass
-                with open(expr_file, "w") as f:
+                with open(expr_file, "w", encoding="utf-8") as f:
                     json.dump(self._valid_equations, f)
-            except Exception as exc:
+            except Exception as exc:  # pylint: disable="broad-except"
                 self.log.debug(f"Failed to write expr file {expr_file}: {exc}")
         self.remaining_possibilities: list[str] = list(
             self._valid_equations.keys()
@@ -152,6 +164,10 @@ class NerdleSolver:
         If it succeeds, it stores the result in the self._expr_by_str cache,
         and if it fails, it stores None in that cache.
         """
+        # Yes, it's a little complicated.
+        #
+        # pylint: disable = "too-many-statements"
+        # pylint: disable = "too-many-branches"
         if expr in self._expr_by_str:
             if self._expr_by_str[expr] is None:
                 raise ValueError(f"'{expr}' is known not to parse")
@@ -185,7 +201,7 @@ class NerdleSolver:
             for idx, tok in enumerate(ttok):
                 if isinstance(tok, int):
                     continue
-                if tok == "*" or tok == "/":  # high-priority operator
+                if tok in ("*", "/"):  # high-priority operator
                     if tok == "/":
                         gazinta = ttok[idx - 1]
                         gazunda = ttok[idx + 1]
@@ -194,6 +210,8 @@ class NerdleSolver:
                         except ZeroDivisionError:
                             # Mark as invalid
                             self.store_expr(expr, None)
+                            # We want to raise a ValueError to the caller
+                            # pylint: disable="raise-missing-from"
                             raise ValueError("Attempted division by zero")
                         if quotient != int(quotient):
                             # Mark as invalid
@@ -453,6 +471,8 @@ class NerdleSolver:
         Check whether a string is a valid-by-Nerdle-rules number: return
         the corresponding int if so.
         """
+        # It's prettier this way.
+        # pylint: disable="no-self-use"
         if not n:
             raise ValueError("The empty string is not a number")
         for c in n:
@@ -518,6 +538,5 @@ class NerdleSolver:
             self.guess = self.remaining_possibilities[0]
             self.valid_guess = self.guess
             return
-        else:
-            best = self.remaining_possibilities[: self.top]
-            print(f"Best remaining possibilities: {', '.join(best)}")
+        best = self.remaining_possibilities[: self.top]
+        print(f"Best remaining possibilities: {', '.join(best)}")
