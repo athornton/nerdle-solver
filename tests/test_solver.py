@@ -47,7 +47,7 @@ def test_solution() -> None:
     n = NerdleSolver(initial_guess="8+7-2=13", answer="4*44=176")
     n.play()
     assert n.current_pattern == "!!!!!!!!"
-    assert n.guesses == 5
+    assert n.guesses == 4
 
 
 def test_easy_solution() -> None:
@@ -79,9 +79,9 @@ def test_internal_state() -> None:
     n = NerdleSolver(initial_guess="8+7-2=13", answer="4*44=176")
     assert len(n.remaining_possibilities) == 66694
     n.loop_once()
-    assert len(n.remaining_possibilities) == 14171
+    assert len(n.remaining_possibilities) == 8778
     n.loop_once()
-    assert len(n.remaining_possibilities) == 4
+    assert len(n.remaining_possibilities) == 2
     n.loop_once()
     assert len(n.remaining_possibilities) == 1
     assert n.in_expr == set("4*=176")

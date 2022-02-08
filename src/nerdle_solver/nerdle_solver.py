@@ -106,16 +106,19 @@ class NerdleSolver:
 
     def play(self) -> None:
         """
-        Main loop of the game
+        Main loop of the game.  If we get the right answer, it will raise
+        CorrectAnswer; if we run out of guesses, OutOfGuesses.  We catch
+        the first, report, and return.  We let the second propagate.
         """
-        try:
-            while True:
-                if self.guesses > self.max_guesses:
-                    raise OutOfGuesses()
+        while True:
+            self.log.info(f"{self.guesses}/{self.max_guesses}")
+            try:
                 self.loop_once()
-        except CorrectAnswer as exc:
-            print(f"Correct answer: '{exc}' in {self.guesses} guesses")
-            return
+            except CorrectAnswer as exc:
+                self.log.info(
+                    f"Correct answer: '{exc}' in {self.guesses} guesses"
+                )
+                return
 
     def loop_once(self) -> None:
         """
@@ -136,7 +139,6 @@ class NerdleSolver:
         while not self.valid_guess:
             self.solicit_current_guess()
             self.check_current_guess()
-        self.guesses += 1
 
     def solicit_current_guess(self) -> None:
         """
@@ -273,6 +275,9 @@ class NerdleSolver:
             self.solicit_pattern()
         if self.current_pattern == "!" * self.expression_length:
             raise CorrectAnswer(self.guess)
+        self.guesses += 1
+        if self.guesses > self.max_guesses:
+            raise OutOfGuesses()
         self.update_positions()
 
     def calculate_pattern(self) -> None:
@@ -534,6 +539,13 @@ class NerdleSolver:
         the next guess.
         """
         if self.answer:
+            if self.guesses == 1:
+                if self.guess:
+                    self.log.debug(f"Using initial guess '{self.guess}'")
+                    if self.guess in self.remaining_possibilities:
+                        self.valid_guess = self.guess
+                        return
+                    self.log.debug(f"Guess '{self.guess}' is invalid")
             self.log.debug("Choosing best guess")
             self.guess = self.remaining_possibilities[0]
             self.valid_guess = self.guess
