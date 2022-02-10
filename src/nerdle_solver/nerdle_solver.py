@@ -418,7 +418,11 @@ class NerdleSolver:
                 self.store_expr(eqn, lhs)
                 # Well, it's true, buuuuut...not valid by our rules.
                 # So we don't store it as a valid equation.
-                if len(eqn) == self.expression_length:
+                # Here is something I am unsure about: does "no lone zeroes"
+                # apply to the right hand side as well?  It seems like
+                # '3*4-12=0' should be valid, but I don't think it actually
+                # is.
+                if len(eqn) == self.expression_length and lhs != 0:
                     self._valid_equations[eqn] = lhs
                 # I thought about storing all the equations that evaluated
                 # to invalid answers, but it takes a lot of memory for
@@ -488,6 +492,8 @@ class NerdleSolver:
                 raise ValueError(
                     "Leading zeroes on multi-digit numbers are not allowed"
                 )
+        if n == "0":
+            raise ValueError("Lone zeroes are not allowed")
         i_n = int(n)
         return i_n
 

@@ -22,7 +22,7 @@ def test_minimal_class() -> None:
     #
     # Check that the lexicon is right
     #
-    assert len(n.remaining_possibilities) == 66694
+    assert len(n.remaining_possibilities) == 17774
 
 
 def test_variant_class() -> None:
@@ -37,7 +37,7 @@ def test_variant_class() -> None:
     #
     # And the length of our valid list should change
     #
-    assert len(n.remaining_possibilities) == 476
+    assert len(n.remaining_possibilities) == 206
 
 
 def test_solution() -> None:
@@ -77,9 +77,9 @@ def test_internal_state() -> None:
     are correctly set
     """
     n = NerdleSolver(initial_guess="8+7-2=13", answer="4*44=176")
-    assert len(n.remaining_possibilities) == 66694
+    assert len(n.remaining_possibilities) == 17774
     n.loop_once()
-    assert len(n.remaining_possibilities) == 8778
+    assert len(n.remaining_possibilities) == 161
     n.loop_once()
     assert len(n.remaining_possibilities) == 2
     n.loop_once()
