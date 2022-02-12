@@ -22,7 +22,7 @@ def test_minimal_class() -> None:
     #
     # Check that the lexicon is right
     #
-    assert len(n.remaining_possibilities) == 17774
+    assert len(n.remaining_possibilities) == 17723
 
 
 def test_variant_class() -> None:
@@ -47,7 +47,7 @@ def test_solution() -> None:
     n = NerdleSolver(initial_guess="8+7-2=13", answer="4*44=176")
     n.play()
     assert n.current_pattern == "!!!!!!!!"
-    assert n.guesses == 4
+    assert n.guesses == 3
 
 
 def test_easy_solution() -> None:
@@ -77,12 +77,11 @@ def test_internal_state() -> None:
     are correctly set
     """
     n = NerdleSolver(initial_guess="8+7-2=13", answer="4*44=176")
-    assert len(n.remaining_possibilities) == 17774
+    assert len(n.remaining_possibilities) == 17723
     n.loop_once()
-    assert len(n.remaining_possibilities) == 161
-    n.loop_once()
-    assert len(n.remaining_possibilities) == 2
+    assert len(n.remaining_possibilities) == 172
     n.loop_once()
     assert len(n.remaining_possibilities) == 1
     assert n.in_expr == set("4*=176")
-    assert n.not_in_expr == set("023589+-/")
+    # We never even tried a zero
+    assert n.not_in_expr == set("23589+-/")

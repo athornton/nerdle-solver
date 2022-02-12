@@ -97,6 +97,14 @@ class NerdleSolver:
         self.remaining_possibilities: list[str] = list(
             self._valid_equations.keys()
         )
+        self.remaining_possibilities.sort()  # Initial lexicographic sort
+        self._rp_hash = {}
+        for rp in self.remaining_possibilities:
+            # looking up a hash entry is constant-time.  Looking up in a
+            # list is linear.  Validating our equations relies on that
+            # lookup.  This actually makes an obvious difference when iterating
+            # through all equations.
+            self._rp_hash[rp] = True
         self.sort_remainder()
         if not self.guess:
             self.log.debug(
@@ -144,7 +152,8 @@ class NerdleSolver:
         """
         Interactively get a guess
         """
-        self.guess = input("Guess expression > ")
+        if not self.guess:  # Initial guess will do, if we have one.
+            self.guess = input("Guess expression > ")
 
     def check_current_guess(self) -> None:
         """
@@ -154,7 +163,7 @@ class NerdleSolver:
             self.validate_guess(self.guess)
             self.valid_guess = self.guess
         except ValueError as exc:
-            self.log.debug(f"'{self.guess}' failed: {exc}")
+            self.log.warning(f"'{self.guess}' failed: {exc}")
             self.guess = ""
             self.expr_value = -1
 
@@ -199,33 +208,29 @@ class NerdleSolver:
             if len(ttok) == 1:
                 if ttok[0] < 0:
                     raise ValueError("Only non-negative results allowed")
+                if ttok[0] != int(ttok[0]):
+                    raise ValueError("Only integer expressions allowed")
+                ttok = [int(ttok[0])]
                 break
             for idx, tok in enumerate(ttok):
-                if isinstance(tok, int):
+                if isinstance(tok, int) or isinstance(tok, float):
                     continue
                 if tok in ("*", "/"):  # high-priority operator
                     if tok == "/":
-                        gazinta = ttok[idx - 1]
-                        gazunda = ttok[idx + 1]
-                        try:
-                            quotient = gazinta / gazunda
-                        except ZeroDivisionError:
-                            # Mark as invalid
-                            self.store_expr(expr, None)
-                            # We want to raise a ValueError to the caller
-                            # pylint: disable="raise-missing-from"
-                            raise ValueError("Attempted division by zero")
-                        if quotient != int(quotient):
-                            # Mark as invalid
-                            self.store_expr(expr, None)
-                            raise ValueError(
-                                f"{gazunda} doesn't integrally "
-                                + f"divide {gazinta}"
-                            )
-                        result = int(quotient)  # Python 3 division is float!
+                        # Division by zero can't happen without constant
+                        # zero terms, because subtraction is lower-priority.
+                        #
+                        # However: we CAN have fractional terms, as long
+                        # as they become integers by the time we have finished
+                        # computing the expression.
+                        result = ttok[idx - 1] / ttok[idx + 1]
                     else:
                         result = ttok[idx - 1] * ttok[idx + 1]
                 else:
+                    if "*" in ttok or "/" in ttok:
+                        # We can't parse low-priority operators until
+                        # we have exhausted the high-priority operators.
+                        continue
                     if tok == "+":
                         result = ttok[idx - 1] + ttok[idx + 1]
                     else:
@@ -248,6 +253,8 @@ class NerdleSolver:
         """
         Only returns if guess is plausible; raises ValueError otherwise
         """
+        if guess not in self._rp_hash:
+            raise ValueError(f"'{guess}' is not in remaining_possibilities.")
         chars_in_guess = set(guess)
         if chars_in_guess < self.in_expr:
             raise ValueError(
@@ -418,11 +425,10 @@ class NerdleSolver:
                 self.store_expr(eqn, lhs)
                 # Well, it's true, buuuuut...not valid by our rules.
                 # So we don't store it as a valid equation.
-                # Here is something I am unsure about: does "no lone zeroes"
-                # apply to the right hand side as well?  It seems like
-                # '3*4-12=0' should be valid, but I don't think it actually
-                # is.
-                if len(eqn) == self.expression_length and lhs != 0:
+                #
+                # The LHS *is* permitted to be a lone zero.
+                #
+                if len(eqn) == self.expression_length:
                     self._valid_equations[eqn] = lhs
                 # I thought about storing all the equations that evaluated
                 # to invalid answers, but it takes a lot of memory for
@@ -514,7 +520,11 @@ class NerdleSolver:
         if rr == 0:
             raise OutOfEquations("No possible valid equations remain")
         self.log.debug(f"{rl - rr} equations eliminated: {rr} remain")
+        remainder.sort()  # Having a stable order makes testing easier
         self.remaining_possibilities = remainder
+        self._rp_hash = {}
+        for rp in self.remaining_possibilities:
+            self._rp_hash[rp] = True
 
     def sort_remainder(self) -> None:
         """
@@ -523,20 +533,23 @@ class NerdleSolver:
         # No idea what the best strategy here is.  Let's pick the ones with
         # the most unconfirmed characters?  (Eliminated characters were
         # eliminated from remaining_possibilities already)
+        #
+        # So, in order: most unconfirmed characters, most characters,
+        # mixing and matching from operator precedence, and finally we
+        # inherit from the lexigraphic sort.
         self.remaining_possibilities.sort(
-            key=self.most_unused,
+            key=lambda e: (
+                len(set(e) - self.in_expr),
+                len(set(e)),
+                (
+                    e.count("-") * e.count("*")
+                    + e.count("-") * e.count("/")
+                    + e.count("+") * e.count("*")
+                    + e.count("+") * e.count("/")
+                ),
+            ),
             reverse=True,
         )
-
-    def most_unused(self, v: str) -> int:
-        """
-        Convenience sort method; most characters we don't know whether they're
-        in the answer, ties broken by number of different characters.
-        """
-        cset = set(v)
-        unknown = cset - self.in_expr
-        score = self.expression_length * len(unknown) + len(cset)
-        return score
 
     def choose_or_show_next_guess(self) -> None:
         """
@@ -556,5 +569,6 @@ class NerdleSolver:
             self.guess = self.remaining_possibilities[0]
             self.valid_guess = self.guess
             return
-        best = self.remaining_possibilities[: self.top]
-        print(f"Best remaining possibilities: {', '.join(best)}")
+        if not self.guess:
+            best = self.remaining_possibilities[: self.top]
+            print(f"Best remaining possibilities: {', '.join(best)}")
