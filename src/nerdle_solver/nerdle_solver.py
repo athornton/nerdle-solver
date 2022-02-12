@@ -541,12 +541,6 @@ class NerdleSolver:
             key=lambda e: (
                 len(set(e) - self.in_expr),
                 len(set(e)),
-                (
-                    e.count("-") * e.count("*")
-                    + e.count("-") * e.count("/")
-                    + e.count("+") * e.count("*")
-                    + e.count("+") * e.count("/")
-                ),
             ),
             reverse=True,
         )
